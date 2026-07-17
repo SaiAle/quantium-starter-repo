@@ -155,90 +155,16 @@ def make_figure(region: str) -> go.Figure:
     return fig
 
 
-# -- Dash app ----------------------------------------------------------------
-app = Dash(__name__)
-app.title = "Soul Foods — Pink Morsel Sales"
-
-app.layout = html.Div(
-    className="app-container",
-    children=[
-
-        # ── Brand Bar ──
-        html.Div(
-            className="brand-bar",
-            children=[
-                html.Div(
-                    className="brand-left",
-                    children=[
-                        html.Div("P", className="brand-icon"),
-                        html.Div(
-                            className="brand-text",
-                            children=[
-                                html.H1("Pink Morsel Sales"),
-                                html.Span("Soul Foods • Retail Analytics"),
-                            ],
-                        ),
-                    ],
-                ),
-                html.Div("Price Rise: Jan 15, 2021", className="brand-badge"),
-            ],
-        ),
-
-        # ── KPI Row ──
-        html.Div(id="kpi-row", className="kpi-row"),
-
-        # ── Controls ──
-        html.Div(
-            className="controls",
-            children=[
-                html.Span("Region", className="region-label"),
-                dcc.RadioItems(
-                    id="region-filter",
-                    className="region-radio",
-                    options=[
-                        {"label": "All", "value": "all"},
-                        {"label": "North", "value": "north"},
-                        {"label": "East", "value": "east"},
-                        {"label": "South", "value": "south"},
-                        {"label": "West", "value": "west"},
-                    ],
-                    value="all",
-                ),
-            ],
-        ),
-
-        # ── Chart ──
-        dcc.Graph(id="sales-line", className="graph-card"),
-
-        # ── Footer ──
-        html.Div(
-            className="footer",
-            children=[
-                "Built with Dash & Plotly  ",
-                html.Span("●"),
-                "  Data: Soul Foods Pink Morsel Sales (2018–2022)",
-            ],
-        ),
-    ],
-)
-
-
-@app.callback(
-    [Output("sales-line", "figure"),
-     Output("kpi-row", "children")],
-    [Input("region-filter", "value")],
-)
-def update_dashboard(region: str):
-    fig = make_figure(region)
+# -- Build initial KPI cards -------------------------------------------------
+def build_kpi_cards(region: str) -> list:
     kpis = compute_kpis(region)
     label = "All Regions" if region == "all" else region.title()
-
     pct = kpis["pct_change"]
     pct_str = f"{pct:+.1f}%"
     pct_color = ACCENT if pct < 0 else "#66bb6a"
     arrow = "↓" if pct < 0 else "↑"
 
-    kpi_cards = [
+    return [
         html.Div(
             className="kpi-card accent",
             children=[
@@ -279,7 +205,82 @@ def update_dashboard(region: str):
         ),
     ]
 
-    return fig, kpi_cards
+
+# -- Dash app ----------------------------------------------------------------
+app = Dash(__name__)
+app.title = "Soul Foods — Pink Morsel Sales"
+
+app.layout = html.Div(
+    className="app-container",
+    children=[
+
+        # ── Brand Bar ──
+        html.Div(
+            className="brand-bar",
+            children=[
+                html.Div(
+                    className="brand-left",
+                    children=[
+                        html.Div("P", className="brand-icon"),
+                        html.Div(
+                            className="brand-text",
+                            children=[
+                                html.H1("Pink Morsel Sales"),
+                                html.Span("Soul Foods • Retail Analytics"),
+                            ],
+                        ),
+                    ],
+                ),
+                html.Div("Price Rise: Jan 15, 2021", className="brand-badge"),
+            ],
+        ),
+
+        # ── KPI Row (pre-rendered for "all") ──
+        html.Div(id="kpi-row", className="kpi-row", children=build_kpi_cards("all")),
+
+        # ── Controls ──
+        html.Div(
+            className="controls",
+            children=[
+                html.Span("Region", className="region-label"),
+                dcc.RadioItems(
+                    id="region-filter",
+                    className="region-radio",
+                    options=[
+                        {"label": "All", "value": "all"},
+                        {"label": "North", "value": "north"},
+                        {"label": "East", "value": "east"},
+                        {"label": "South", "value": "south"},
+                        {"label": "West", "value": "west"},
+                    ],
+                    value="all",
+                ),
+            ],
+        ),
+
+        # ── Chart (pre-rendered for "all") ──
+        dcc.Graph(id="sales-line", figure=make_figure("all"), className="graph-card"),
+
+        # ── Footer ──
+        html.Div(
+            className="footer",
+            children=[
+                "Built with Dash & Plotly  ",
+                html.Span("●"),
+                "  Data: Soul Foods Pink Morsel Sales (2018–2022)",
+            ],
+        ),
+    ],
+)
+
+
+@app.callback(
+    [Output("sales-line", "figure"),
+     Output("kpi-row", "children")],
+    [Input("region-filter", "value")],
+)
+def update_dashboard(region: str):
+    return make_figure(region), build_kpi_cards(region)
 
 
 if __name__ == "__main__":
